@@ -23,6 +23,12 @@ Rode na raiz do projeto:
 bash scripts/install-ubuntu.sh
 ```
 
+Ou tudo em uma linha (clonar + instalar):
+
+```bash
+bash -lc "git clone https://github.com/wesleiandersonti/gestor-vet.git && cd gestor-vet && bash scripts/install-ubuntu.sh"
+```
+
 Valores padrao usados pelo script (podem ser sobrescritos por variaveis de ambiente):
 
 - `DB_NAME=gestorvet`
