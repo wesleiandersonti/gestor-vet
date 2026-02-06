@@ -1,6 +1,19 @@
 # Gestor Veet
 
-Sistema web para gestao de operacoes IPTV e administracao interna, baseado em Laravel.
+Plataforma web para gestao de operacoes IPTV, clientes, planos e campanhas. Construida em Laravel.
+
+## Destaques
+
+- Gestao de clientes, planos e revendas
+- Campanhas e notificacoes
+- Pagamentos e cobranca
+- Painel administrativo e permissoes
+
+## Stack
+
+- Backend: Laravel 10, PHP 8.1+
+- Frontend: Laravel Mix (Webpack)
+- Banco: MySQL 8
 
 ## Instalacao no Ubuntu (comando unico)
 
@@ -32,10 +45,51 @@ DB_NAME=meubanco DB_USER=meuusuario DB_PASS=minhasenha bash scripts/install-ubun
 - Compila assets
 - Roda migrations
 
+## Variaveis de ambiente
+
+Edite o `.env` conforme sua infraestrutura. Campos minimos:
+
+```
+APP_NAME=GestorVeet
+APP_ENV=local
+APP_KEY=
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=gestorvet
+DB_USERNAME=gestorvet
+DB_PASSWORD=gestorvet
+```
+
 ## Comandos uteis
 
 ```bash
 php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+## Agendamentos (cron)
+
+No servidor Linux, adicione:
+
+```
+* * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
+```
+
+## Filas (queue)
+
+```bash
+php artisan queue:work
+```
+
+## Build para producao
+
+```bash
+npm run prod
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
