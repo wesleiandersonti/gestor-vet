@@ -44,13 +44,13 @@ DB_NAME=meubanco DB_USER=meuusuario DB_PASS=minhasenha bash scripts/install-ubun
 ## O que o script faz
 
 - Detecta a versao do Ubuntu
-- Instala dependencias (PHP, Composer, Node.js, MySQL, Nginx)
+- Instala dependencias (PHP, Composer, Node.js, MySQL, Apache)
 - Configura o banco e usuario local
 - Prepara o `.env` e gera a chave da aplicacao
 - Instala dependencias do projeto
 - Compila assets
 - Roda migrations
-- Configura o Nginx apontando para dominio (ou IP se vazio)
+- Configura o Apache apontando para dominio (ou IP se vazio)
 - Oferece SSL LetsEncrypt quando houver dominio
 
 ## Variaveis de ambiente

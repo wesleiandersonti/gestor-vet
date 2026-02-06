@@ -15,11 +15,11 @@ fi
 
 sudo apt-get update
 sudo apt-get install -y git unzip curl ca-certificates software-properties-common build-essential
-sudo apt-get install -y php php-cli php-fpm php-mbstring php-xml php-curl php-zip php-mysql php-bcmath php-intl php-gd php-soap php-readline php-redis
-sudo apt-get install -y mysql-server nginx
+sudo apt-get install -y php php-cli php-mbstring php-xml php-curl php-zip php-mysql php-bcmath php-intl php-gd php-soap php-readline php-redis libapache2-mod-php
+sudo apt-get install -y mysql-server apache2
 
 if command -v systemctl >/dev/null 2>&1; then
-  sudo systemctl enable --now mysql nginx
+  sudo systemctl enable --now mysql apache2
 else
   sudo service mysql start
 fi
@@ -109,46 +109,38 @@ if [ -f artisan ]; then
   php artisan migrate
 fi
 
-sudo tee /etc/nginx/sites-available/gestor-vet >/dev/null <<EOF
-server {
-  listen 80;
-  server_name ${SERVER_NAME};
-  root ${PWD}/public;
+sudo a2enmod rewrite
+sudo tee /etc/apache2/sites-available/gestor-vet.conf >/dev/null <<EOF
+<VirtualHost *:80>
+  ServerName ${SERVER_NAME}
+  DocumentRoot ${PWD}/public
 
-  index index.php index.html;
-  client_max_body_size 64M;
+  <Directory ${PWD}/public>
+    AllowOverride All
+    Require all granted
+  </Directory>
 
-  location / {
-    try_files \$uri \$uri/ /index.php?\$query_string;
-  }
-
-  location ~ \.php$ {
-    include snippets/fastcgi-php.conf;
-    fastcgi_pass unix:/run/php/php8.1-fpm.sock;
-  }
-
-  location ~* \.(jpg|jpeg|gif|png|css|js|ico|svg|woff|woff2|ttf|eot)$ {
-    expires max;
-    log_not_found off;
-  }
-}
+  ErrorLog \${APACHE_LOG_DIR}/gestor-vet-error.log
+  CustomLog \${APACHE_LOG_DIR}/gestor-vet-access.log combined
+</VirtualHost>
 EOF
 
-sudo ln -sf /etc/nginx/sites-available/gestor-vet /etc/nginx/sites-enabled/gestor-vet
-sudo nginx -t
-sudo systemctl reload nginx
+sudo a2ensite gestor-vet.conf
+sudo a2dissite 000-default.conf
+sudo apache2ctl configtest
+sudo systemctl reload apache2
 
 if [ -n "$DOMAIN" ]; then
   echo "Deseja instalar SSL (LetsEncrypt) agora? (s/N)"
   read -r INSTALL_SSL
   if [ "$INSTALL_SSL" = "s" ] || [ "$INSTALL_SSL" = "S" ]; then
-    sudo apt-get install -y certbot python3-certbot-nginx
+    sudo apt-get install -y certbot python3-certbot-apache
     echo "Informe o email para o certificado (opcional)."
     read -r CERT_EMAIL
     if [ -n "$CERT_EMAIL" ]; then
-      sudo certbot --nginx -d "$DOMAIN" --agree-tos -m "$CERT_EMAIL" --redirect
+      sudo certbot --apache -d "$DOMAIN" --agree-tos -m "$CERT_EMAIL" --redirect
     else
-      sudo certbot --nginx -d "$DOMAIN" --agree-tos --register-unsafely-without-email --redirect
+      sudo certbot --apache -d "$DOMAIN" --agree-tos --register-unsafely-without-email --redirect
     fi
   fi
 else
