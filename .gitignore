@@ -1,11 +1,26 @@
 /.phpunit.cache
 /node_modules
+/vendor
 
 /public/build
 /public/hot
 /public/storage
+
+# Runtime storage
 /storage/*.key
-/vendor
+/storage/app/*
+!/storage/app/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/storage/
 
 .env
 .env.backup
@@ -19,12 +34,17 @@ Homestead.yaml
 auth.json
 npm-debug.log
 yarn-error.log
-yarn.lock
-package-lock.json
 package-lock.log
 /.fleet
 /.idea
 /.vscode
+
+# Local backups and dumps
+/seguranca depois apaga/
+/segurança depois apaga/
+/seguranca depois apaga.2846/
+/segurança depois apaga.2846/
+/*.sql
 
 /public/css
 /public/js
@@ -34,6 +54,3 @@ package-lock.log
 /public/assets/js
 /public/assets/css
 /public/assets/vendor
-
-# Package Lock files
-/package-lock.json

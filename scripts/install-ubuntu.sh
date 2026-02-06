@@ -96,11 +96,19 @@ set_env "DB_PASSWORD" "${DB_PASS}"
 set_env "APP_URL" "${APP_URL}"
 
 if [ -f composer.json ]; then
-  COMPOSER_ALLOW_SUPERUSER=1 composer install
+  if [ -f composer.lock ]; then
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction
+  else
+    COMPOSER_ALLOW_SUPERUSER=1 composer update --no-interaction
+  fi
 fi
 
 if [ -f package.json ]; then
-  npm install
+  if [ -f package-lock.json ]; then
+    npm ci
+  else
+    npm install
+  fi
 fi
 
 if [ -f artisan ]; then

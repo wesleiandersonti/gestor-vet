@@ -22,8 +22,18 @@ if [ "$PHP_MAJOR_MINOR" != "8.2" ]; then
   exit 1
 fi
 
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
-npm install
+if [ -f composer.lock ]; then
+  COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
+else
+  echo "Aviso: composer.lock nao encontrado. Executando composer update --no-dev."
+  COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --optimize-autoloader --no-interaction
+fi
+
+if [ -f package-lock.json ]; then
+  npm ci
+else
+  npm install
+fi
 npm run prod
 
 php artisan migrate --force

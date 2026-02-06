@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, xml, curl, zip, mysql, bcmath, intl, gd, soap
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: |
+          if [ -f composer.lock ]; then
+            composer install --no-interaction --prefer-dist
+          else
+            composer update --no-interaction --prefer-dist
+          fi
+
+      - name: Prepare app env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend assets
+        run: npm run prod
+
+      - name: Laravel sanity check
+        run: php artisan --version

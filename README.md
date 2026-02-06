@@ -71,6 +71,8 @@ DB_USERNAME=gestorvet
 DB_PASSWORD=gestorvet
 ```
 
+O arquivo base de ambiente fica em `.env.example`.
+
 ## Comandos uteis
 
 ```bash
@@ -110,6 +112,8 @@ Na VM, execute:
 ```bash
 bash scripts/update-ubuntu.sh
 ```
+
+O script usa `composer install` quando existir `composer.lock` e usa `composer update` como fallback quando o lock nao existir.
 
 Se voce nao souber o caminho do projeto, use o atualizador automatico:
 
