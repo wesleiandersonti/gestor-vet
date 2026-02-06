@@ -18,7 +18,7 @@ php artisan route:cache
 php artisan view:cache
 
 if command -v systemctl >/dev/null 2>&1; then
-  sudo systemctl reload nginx
+  sudo systemctl reload apache2
 fi
 
 echo "Atualizacao concluida"
