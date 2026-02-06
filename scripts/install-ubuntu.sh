@@ -39,26 +39,61 @@ if ! command -v node >/dev/null 2>&1; then
   sudo apt-get install -y nodejs
 fi
 
-PUBLIC_IP=$(curl -s https://api.ipify.org || true)
+LOCAL_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") { print $(i+1); exit }}' || true)
+if [ -z "$LOCAL_IP" ]; then
+  LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+fi
+if [ -z "$LOCAL_IP" ]; then
+  LOCAL_IP="127.0.0.1"
+fi
+
+PUBLIC_IP=$(curl -fsS https://api.ipify.org 2>/dev/null || true)
 if [ -z "$PUBLIC_IP" ]; then
-  PUBLIC_IP=$(curl -s https://ifconfig.me || true)
-fi
-if [ -z "$PUBLIC_IP" ]; then
-  echo "Nao foi possivel detectar o IP publico automaticamente."
-  exit 1
+  PUBLIC_IP=$(curl -fsS https://ifconfig.me 2>/dev/null || true)
 fi
 
-echo "Informe o dominio (opcional)."
-echo "Se deixar em branco, o acesso sera pelo IP: ${PUBLIC_IP}"
-read -r DOMAIN
+ACCESS_MODE=${ACCESS_MODE:-}
+DOMAIN=${DOMAIN:-}
 
-SERVER_NAME="$PUBLIC_IP"
-APP_URL="http://${PUBLIC_IP}"
-
-if [ -n "$DOMAIN" ]; then
-  SERVER_NAME="$DOMAIN"
-  APP_URL="http://${DOMAIN}"
+if [ -z "$ACCESS_MODE" ]; then
+  echo "Escolha o tipo de acesso inicial:"
+  echo "1) Dominio"
+  echo "2) IP local da VM (padrao)"
+  echo "3) IP publico da VM"
+  read -r ACCESS_MODE
 fi
+
+SERVER_NAME="$LOCAL_IP"
+APP_URL="http://${LOCAL_IP}"
+HOST_MODE_RESOLVED="local"
+
+case "$ACCESS_MODE" in
+  "1")
+    if [ -z "$DOMAIN" ]; then
+      echo "Informe o dominio (exemplo: app.seudominio.com):"
+      read -r DOMAIN
+    fi
+    if [ -z "$DOMAIN" ]; then
+      echo "Dominio nao informado. Usando IP local: ${LOCAL_IP}"
+    else
+      SERVER_NAME="$DOMAIN"
+      APP_URL="http://${DOMAIN}"
+      HOST_MODE_RESOLVED="domain"
+    fi
+    ;;
+  "3")
+    if [ -n "$PUBLIC_IP" ]; then
+      SERVER_NAME="$PUBLIC_IP"
+      APP_URL="http://${PUBLIC_IP}"
+      HOST_MODE_RESOLVED="public"
+    else
+      echo "Nao foi possivel detectar IP publico. Usando IP local: ${LOCAL_IP}"
+    fi
+    ;;
+  *)
+    echo "Usando IP local: ${LOCAL_IP}"
+    ;;
+esac
 
 DB_NAME=${DB_NAME:-gestorvet}
 DB_USER=${DB_USER:-gestorvet}
@@ -144,7 +179,7 @@ sudo a2dissite 000-default.conf
 sudo apache2ctl configtest
 sudo systemctl reload apache2
 
-if [ -n "$DOMAIN" ]; then
+if [ "$HOST_MODE_RESOLVED" = "domain" ]; then
   echo "Deseja instalar SSL (LetsEncrypt) agora? (s/N)"
   read -r INSTALL_SSL
   if [ "$INSTALL_SSL" = "s" ] || [ "$INSTALL_SSL" = "S" ]; then
@@ -158,7 +193,7 @@ if [ -n "$DOMAIN" ]; then
     fi
   fi
 else
-  echo "SSL nao pode ser emitido para IP. Para SSL, use um dominio."
+  echo "SSL nao pode ser emitido para IP. Para SSL, use a opcao de dominio."
 fi
 
 echo "Instalacao concluida: ${APP_URL}"

@@ -34,11 +34,19 @@ Valores padrao usados pelo script (podem ser sobrescritos por variaveis de ambie
 - `DB_NAME=gestorvet`
 - `DB_USER=gestorvet`
 - `DB_PASS=gestorvet`
+- `ACCESS_MODE=2` (1=dominio, 2=ip local, 3=ip publico)
+- `DOMAIN=` (obrigatorio quando `ACCESS_MODE=1`)
 
 Exemplo com valores customizados:
 
 ```bash
 DB_NAME=meubanco DB_USER=meuusuario DB_PASS=minhasenha bash scripts/install-ubuntu.sh
+```
+
+Exemplo forçando acesso por IP local:
+
+```bash
+ACCESS_MODE=2 bash scripts/install-ubuntu.sh
 ```
 
 ## O que o script faz
@@ -50,7 +58,8 @@ DB_NAME=meubanco DB_USER=meuusuario DB_PASS=minhasenha bash scripts/install-ubun
 - Instala dependencias do projeto
 - Compila assets
 - Roda migrations
-- Configura o Apache apontando para dominio (ou IP se vazio)
+- Pergunta se o acesso sera por dominio, IP local ou IP publico
+- Configura o Apache com o host escolhido
 - Oferece SSL LetsEncrypt quando houver dominio
 
 ## Variaveis de ambiente
