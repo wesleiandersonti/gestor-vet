@@ -1,0 +1,29 @@
+enviar companha criar essa cron jobs
+muda o link https://gestor.spxtv.top pelo do seu painel
+
+curl -s "https://gestor.spxtv.top/run-campanhas" > /dev/null 2>&1
+
+enviar cobrança manual criar essa cron jobs
+mudar o link https://gestor.spxtv.top pelo seu
+
+curl -s "https://gestor.spxtv.top/run-scheduled-tasks" > /dev/null 2>&1
+
+
+----------------------------------------------------------------------------------
+
+lembrese de configurar assim as cron..
+
+Criar Novo Cron Job
+
+vc seleciona.....
+
+1- Custom
+2- Uma vez por hora (0 * * * *)
+3- Cada minuto (*)
+4- Toda Hora (*)
+5- Todo Dia (*)
+6- Todo Mês (*)
+7- Todo dia de semana (*)
+
+
+pronto fazendo isso nas 2 cron e salvando ja vai estar funcionando perfeitamente

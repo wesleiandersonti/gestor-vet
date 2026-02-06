@@ -1,0 +1,688 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
+
+class UpdateController extends Controller
+{
+    protected $repo;
+    protected $currentVersion;
+    protected $latestVersion;
+    
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('verified');
+        $this->currentVersion = env('APP_VERSION', '1.0');
+        $this->repo = env('GITHUB_LINK');
+    }
+    
+    public function checkForUpdates()
+    {
+        try {
+            Log::info('Iniciando verificação de atualizações');
+            
+            try {
+                $releasesResponse = $this->githubApiRequest("releases");
+                $releases = json_decode($releasesResponse->getBody()->getContents(), true);
+                
+                if (is_array($releases) && !empty($releases)) {
+                    usort($releases, function($a, $b) {
+                        return version_compare(
+                            ltrim($b['tag_name'], 'v'), 
+                            ltrim($a['tag_name'], 'v')
+                        );
+                    });
+                    
+                    $latestRelease = $releases[0] ?? null;
+                    
+                    if ($latestRelease) {
+                        // Formatar as release notes aqui
+                        $releaseNotesFormatted = $this->formatReleaseNotes($latestRelease['body'] ?? '');
+                        
+                        return response()->json([
+                            'update_available' => version_compare(
+                                ltrim($latestRelease['tag_name'], 'v'), 
+                                ltrim($this->currentVersion, 'v'), 
+                                '>'
+                            ),
+                            'current_version' => $this->currentVersion,
+                            'latest_version' => $latestRelease['tag_name'],
+                            'release_notes' => $releaseNotesFormatted,  // Notas formatadas
+                            'commit_url' => $latestRelease['html_url'] ?? null
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Falha ao obter releases, tentando tags", ['error' => $e->getMessage()]);
+            }
+    
+            // Fallback para tags
+            $tagsResponse = $this->githubApiRequest("tags");
+            $tags = json_decode($tagsResponse->getBody()->getContents(), true);
+            
+            if (!is_array($tags)) {
+                throw new \Exception("Resposta inválida da API GitHub");
+            }
+    
+            if (empty($tags)) {
+                throw new \Exception("Nenhuma tag encontrada no repositório");
+            }
+    
+            // Ordena as tags por versão (mais nova primeiro)
+            usort($tags, function($a, $b) {
+                return version_compare(
+                    ltrim($b['name'], 'v'), 
+                    ltrim($a['name'], 'v')
+                );
+            });
+            
+            $latestTag = $tags[0] ?? null;
+            
+            if (!$latestTag) {
+                throw new \Exception("Não foi possível determinar a versão mais recente");
+            }
+    
+            return response()->json([
+                'update_available' => version_compare(
+                    ltrim($latestTag['name'], 'v'), 
+                    ltrim($this->currentVersion, 'v'), 
+                    '>'
+                ),
+                'current_version' => $this->currentVersion,
+                'latest_version' => $latestTag['name'],
+                'release_notes' => '', // Sem notas se for a resposta fallback
+                'commit_url' => $latestTag['commit']['url'] ?? null
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("Erro ao verificar atualizações", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => $e->getMessage(),
+                'details' => 'Verifique as configurações do GitHub'
+            ], 500);
+        }
+    }
+    
+    // Função para formatar as release notes
+    private function formatReleaseNotes($releaseNotes)
+    {
+        // Substituir negrito (Markdown) por <strong>
+        $releaseNotes = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $releaseNotes);
+    
+        // Substituir quebras de linha por <br>
+        return nl2br($releaseNotes);
+    }
+
+    
+    protected function checkUpdatesUsingTags()
+    {
+        // Método fallback para quando não há releases
+        $tagsResponse = $this->githubApiRequest("tags");
+        $tags = json_decode($tagsResponse->getBody()->getContents(), true);
+        
+        if (!is_array($tags)) {
+            throw new \Exception("Resposta inválida da API GitHub");
+        }
+    
+        if (empty($tags)) {
+            throw new \Exception("Nenhuma tag encontrada no repositório");
+        }
+    
+        // Ordena as tags por versão (mais nova primeiro)
+        usort($tags, function($a, $b) {
+            return version_compare(
+                ltrim($b['name'], 'v'), 
+                ltrim($a['name'], 'v')
+            );
+        });
+        
+        $latestTag = $tags[0] ?? null;
+        
+        if (!$latestTag) {
+            throw new \Exception("Não foi possível determinar a versão mais recente");
+        }
+    
+        return response()->json([
+            'update_available' => version_compare(
+                ltrim($latestTag['name'], 'v'), 
+                ltrim($this->currentVersion, 'v'), 
+                '>'
+            ),
+            'current_version' => $this->currentVersion,
+            'latest_version' => $latestTag['name'],
+            'release_notes' => '', // Não conseguimos as notas das tags
+            'commit_url' => $latestTag['commit']['url'] ?? null
+        ]);
+    }
+    
+    protected function cleanReleaseNotes(string $notes)
+    {
+        // Remove prefixos comuns
+        $patterns = [
+            '/^v?\d+\.\d+\.\d+(\.\d+)?\s*[-:]\s*/i',  // Remove versão no início
+            '/^\[|\]$/',                                // Remove colchetes (sem modificador 'g')
+            '/^\s+|\s+$/'                               // Remove espaços extras (sem modificador 'g')
+        ];
+    
+        foreach ($patterns as $pattern) {
+            $notes = preg_replace($pattern, '', $notes);
+        }
+    
+        return trim($notes);
+    }
+    
+    protected function extractReleaseNotes(array $tagDetails)
+    {
+        // Tenta pegar a mensagem em diferentes locais da resposta
+        $message = $tagDetails['message'] ?? 
+                   $tagDetails['tag']['message'] ?? 
+                   $tagDetails['object']['message'] ?? 
+                   '';
+        
+        // Se não encontrou, tenta pegar do commit associado
+        if (empty($message) && isset($tagDetails['object']['sha'])) {
+            try {
+                $commitResponse = $this->githubApiRequest("git/commits/" . $tagDetails['object']['sha']);
+                $commitDetails = json_decode($commitResponse->getBody()->getContents(), true);
+                $message = $commitDetails['message'] ?? '';
+            } catch (\Exception $e) {
+                Log::warning("Não foi possível obter detalhes do commit", ['error' => $e->getMessage()]);
+            }
+        }
+    
+        // Limpa a mensagem
+        return $this->cleanReleaseNotes($message);
+    }
+    
+    protected function getLatestTag(array $tags)
+    {
+        // Filtra apenas tags com nome válido
+        $validTags = array_filter($tags, function($tag) {
+            return isset($tag['name']) && preg_match('/^v?\d+\.\d+\.\d+(\.\d+)?$/', $tag['name']);
+        });
+    
+        // Ordena por versão (mais nova primeiro)
+        usort($validTags, function($a, $b) {
+            return version_compare(
+                ltrim($b['name'], 'v'), 
+                ltrim($a['name'], 'v')
+            );
+        });
+    
+        return $validTags[0] ?? null;
+    }
+    
+    protected function getReleaseNotes(array $tag)
+    {
+        if (!isset($tag['commit']['message'])) {
+            return '';
+        }
+    
+        $message = $tag['commit']['message'];
+        
+        // Remove prefixos comuns
+        $patterns = [
+            '/^' . preg_quote($tag['name']) . '\s*[-:]\s*/i',
+            '/^\[|\]$/',
+            '/^\s+|\s+$/'
+        ];
+    
+        foreach ($patterns as $pattern) {
+            $message = preg_replace($pattern, '', $message);
+        }
+    
+        return $message;
+    }
+    
+    protected function getLatestVersionFromTags(array $tags)
+    {
+        // Filtra tags válidas
+        $validTags = array_filter($tags, function($tag) {
+            return isset($tag['name']) && preg_match('/^v?\d+\.\d+\.\d+(\.\d+)?$/', $tag['name']);
+        });
+    
+        // Ordena por versão
+        usort($validTags, function($a, $b) {
+            return version_compare(
+                ltrim($b['name'], 'v'), 
+                ltrim($a['name'], 'v')
+            );
+        });
+    
+        return $validTags[0] ?? null; // Agora retorna o array da tag, não só o nome
+    }
+
+    
+    protected function getTagDetails($tagName)
+    {
+        $response = $this->githubApiRequest("git/tags/" . urlencode($tagName));
+        return $response->json();
+    }
+
+    public function performUpdate()
+    {
+        try {
+            $this->logUpdateProgress("Iniciando processo de atualização...");
+            
+            $this->checkDiskSpace();
+            $this->logUpdateProgress("Verificação de espaço em disco concluída");
+    
+            // Obter informações da tag mais recente
+            $response = $this->githubApiRequest("tags");
+            $tags = json_decode($response->getBody()->getContents(), true);
+    
+            $tagInfo = $this->getLatestVersionFromTags($tags);
+            if (!$tagInfo || empty($tagInfo['zipball_url'])) {
+                throw new \Exception("Não foi possível obter a URL de download da versão.");
+            }
+    
+            $this->latestVersion = $tagInfo['name'];
+            $zipUrl = $tagInfo['zipball_url'];
+    
+            $this->logUpdateProgress("Versão mais recente identificada: {$this->latestVersion}");
+    
+            $this->downloadUpdatedFiles($zipUrl);
+            $this->logUpdateProgress("Download dos arquivos concluído");
+    
+            $this->updateVersionFile();
+            $this->logUpdateProgress("Arquivo de versão atualizado");
+    
+            $this->logUpdateProgress("Atualização concluída com sucesso!");
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Atualização concluída com sucesso',
+                'version' => $this->latestVersion,
+                'logs' => $this->getUpdateLogs()
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logUpdateProgress("ERRO: " . $e->getMessage());
+            return response()->json([
+                'error' => $e->getMessage(),
+                'logs' => $this->getUpdateLogs()
+            ], 500);
+        }
+    }
+
+    
+    // Adicione esses métodos na classe UpdateController
+    protected $updateLogs = [];
+    
+    protected function logUpdateProgress($message)
+    {
+        $timestamp = now()->format('Y-m-d H:i:s');
+        $logMessage = "[{$timestamp}] {$message}";
+        $this->updateLogs[] = $logMessage;
+        Log::info($logMessage);
+        
+        // Se for uma requisição HTTP, envia o progresso
+        if (request()->wantsJson()) {
+            return response()->json([
+                'message' => $message,
+                'logs' => $this->updateLogs
+            ]);
+        }
+    }
+    
+    protected function getUpdateLogs()
+    {
+        return $this->updateLogs;
+    }
+    
+    protected function githubApiRequest(string $endpoint)
+    {
+        $token = config('services.github.token');
+        $repoOwner = config('services.github.repo_owner');
+        $repoName = config('services.github.repo_name');
+        
+        if (empty($token)) {
+            throw new \Exception("Token do GitHub não configurado");
+        }
+    
+        if (empty($repoOwner) || empty($repoName)) {
+            throw new \Exception("Repositório GitHub não configurado corretamente");
+        }
+    
+        $client = new \GuzzleHttp\Client([
+            'base_uri' => "https://api.github.com/repos/{$repoOwner}/{$repoName}/",
+            'headers' => [
+                'Authorization' => 'token ' . $token,
+                'Accept' => 'application/vnd.github.v3+json',
+            ],
+            'timeout' => config('services.github.timeout'),
+            'verify' => false // Apenas para desenvolvimento
+        ]);
+    
+        try {
+            return $client->get($endpoint);
+        } catch (\Exception $e) {
+            throw new \Exception("Falha na comunicação com GitHub: " . $e->getMessage());
+        }
+    }
+    
+    protected function checkDiskSpace()
+    {
+        $freeSpace = disk_free_space(base_path());
+        if ($freeSpace < 100 * 1024 * 1024) {
+            throw new \Exception("Espaço em disco insuficiente");
+        }
+    }
+    
+    protected function downloadUpdatedFiles($url)
+    {
+        $this->logUpdateProgress("Iniciando download da versão: {$this->latestVersion}");
+    
+        // Recuperando o token do GitHub
+        $token = config('services.github.token'); // Certifique-se de configurar no .env
+    
+        // Inicializando o cliente HTTP Guzzle
+        $client = new \GuzzleHttp\Client();
+    
+        try {
+            // Fazendo a requisição GET com cabeçalhos adequados
+            $response = $client->get($url, [
+                'headers' => [
+                    'User-Agent' => 'Laravel',
+                    'Authorization' => 'token ' . $token,
+                    'Accept' => 'application/vnd.github+json',
+                ]
+            ]);
+    
+            // Verificando se a requisição foi bem-sucedida
+            if ($response->getStatusCode() !== 200) {
+                throw new \Exception("Falha no download: " . $response->getStatusCode());
+            }
+    
+            // Definindo o caminho para salvar o arquivo ZIP
+            $zipPath = storage_path("app/update.zip");
+    
+            // Salvando o conteúdo do corpo da resposta (o arquivo ZIP) no local desejado
+            file_put_contents($zipPath, $response->getBody()->getContents());
+    
+            $this->logUpdateProgress("Arquivo ZIP salvo em: $zipPath");
+    
+            // Extraindo o arquivo ZIP
+            $this->extractZip($zipPath);
+    
+            // Após extrair, você pode atualizar os arquivos do sistema
+            $this->replaceUpdatedFiles();
+    
+        } catch (\Exception $e) {
+            // Caso ocorra algum erro durante o download ou extração
+            $this->logUpdateProgress("ERRO: " . $e->getMessage());
+            throw $e; // Relança a exceção para que o erro seja tratado em outro lugar
+        }
+    }
+    
+    protected function extractZip($zipPath)
+    {
+        $extractPath = storage_path("app/extracted_update");
+    
+        // Verifica se o diretório de extração existe, se não, cria
+        if (!is_dir($extractPath)) {
+            mkdir($extractPath, 0777, true);
+        }
+    
+        // Abrindo o arquivo ZIP
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) === true) {
+            // Extraindo para o diretório desejado
+            $zip->extractTo($extractPath);
+            $zip->close();
+    
+            $this->logUpdateProgress("Arquivos extraídos para: $extractPath");
+        } else {
+            throw new \Exception("Erro ao abrir o arquivo ZIP.");
+        }
+    }
+    
+    protected function replaceUpdatedFiles()
+    {
+        $extractPath = storage_path("app/extracted_update");
+        
+        // 1. Encontrar o diretório raiz extraído
+        $extractedRootDir = $this->findExtractedRootDir($extractPath);
+        
+        // 2. Se não encontrar, tentar mover tudo diretamente (solução alternativa)
+        if (!$extractedRootDir) {
+            $this->logUpdateProgress("Nenhum padrão de diretório reconhecido, movendo todo o conteúdo");
+            $sourcePath = $extractPath;
+        } else {
+            $sourcePath = $extractPath . '/' . $extractedRootDir;
+        }
+        
+        $this->logUpdateProgress("Movendo arquivos de: " . $sourcePath . " para " . base_path());
+        
+        // 3. Lista de arquivos/diretórios protegidos
+        $protectedFiles = [
+            '.env',
+            'storage',
+            'public/uploads',
+            'config/app.php'
+        ];
+        
+        // 4. Mover todos os arquivos não protegidos
+        $this->recurseCopy($sourcePath, base_path(), $protectedFiles);
+        
+        $this->logUpdateProgress("Arquivos atualizados com sucesso.");
+        
+        // 5. Atualizar versão no .env
+        $this->updateVersionFile();
+    }
+    
+    protected function findExtractedRootDir($extractPath)
+    {
+        $files = scandir($extractPath);
+        
+        foreach ($files as $file) {
+            if ($file !== '.' && $file !== '..' && is_dir($extractPath . '/' . $file)) {
+                // Padrão 1: usuario-repo-hash (GitHub tradicional)
+                if (preg_match('/^[a-zA-Z0-9]+-[a-zA-Z0-9]+-[a-f0-9]+$/', $file)) {
+                    return $file;
+                }
+                // Padrão 2: repo-hash (outro formato GitHub)
+                if (preg_match('/^[a-zA-Z0-9]+-[a-f0-9]+$/', $file)) {
+                    return $file;
+                }
+                // Se só tiver uma pasta, assume que é ela
+                if (count($files) === 3) { // . e .. contam
+                    return $file;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    protected function recurseCopy($src, $dest, $protectedFiles = [])
+    {
+        $dir = opendir($src);
+        
+        // Verificar se é um diretório protegido
+        foreach ($protectedFiles as $protected) {
+            if (strpos($src, $protected) !== false) {
+                $this->logUpdateProgress("Pulando diretório protegido: " . $src);
+                return;
+            }
+        }
+        
+        @mkdir($dest, 0755, true);
+        
+        while (($file = readdir($dir)) !== false) {
+            if ($file != '.' && $file != '..') {
+                $srcFile = $src . '/' . $file;
+                $destFile = $dest . '/' . $file;
+                
+                // Verificar se o arquivo/diretório está na lista de protegidos
+                $isProtected = false;
+                foreach ($protectedFiles as $protected) {
+                    if (strpos($srcFile, $protected) !== false) {
+                        $isProtected = true;
+                        break;
+                    }
+                }
+                
+                if ($isProtected) {
+                    $this->logUpdateProgress("Preservando arquivo protegido: " . $srcFile);
+                    continue;
+                }
+                
+                if (is_dir($srcFile)) {
+                    $this->recurseCopy($srcFile, $destFile, $protectedFiles);
+                } else {
+                    // Verifica se o arquivo existe e é diferente
+                    if (!file_exists($destFile) || 
+                        md5_file($srcFile) !== md5_file($destFile)) {
+                        copy($srcFile, $destFile);
+                        $this->logUpdateProgress("Atualizando arquivo: " . $destFile);
+                    }
+                }
+            }
+        }
+        closedir($dir);
+    }
+
+
+    protected function processDownloadedZip($zipPath, $tag)
+    {
+        $extractPath = storage_path("app/update_{$tag}");
+        
+        // Limpa e extrai o ZIP
+        File::deleteDirectory($extractPath);
+        File::ensureDirectoryExists($extractPath);
+        
+        $zip = new \ZipArchive;
+        if ($zip->open($zipPath) !== true || !$zip->extractTo($extractPath)) {
+            throw new \Exception("Falha ao extrair arquivos ZIP");
+        }
+        $zip->close();
+        unlink($zipPath);
+        
+        // Encontra o diretório principal
+        $extractedDir = collect(scandir($extractPath))->first(function ($item) use ($extractPath) {
+            return !in_array($item, ['.', '..']) && is_dir("{$extractPath}/{$item}");
+        });
+        
+        if (!$extractedDir) {
+            throw new \Exception("Diretório principal não encontrado");
+        }
+        
+        $this->moveEssentialFiles("{$extractPath}/{$extractedDir}", base_path());
+        File::deleteDirectory($extractPath);
+    }
+    
+    protected function moveEssentialFiles($source, $destination)
+    {
+        // Lista de arquivos/diretórios críticos que NÃO devem ser sobrescritos
+        $protectedItems = [
+            '.env',
+            'storage/app/',
+            'storage/framework/',
+            'storage/logs/',
+            'public/uploads/',
+            'config/app.php', // Mantém configurações específicas
+        ];
+    
+        // Diretórios essenciais para atualizar
+        $updateDirs = [
+            'app' => true,
+            'config' => ['except' => ['app.php']],
+            'database' => true,
+            'resources' => true,
+            'routes' => true,
+            'public' => ['except' => ['uploads']],
+            'bootstrap' => true,
+        ];
+    
+        foreach ($updateDirs as $dir => $options) {
+            $sourceDir = "$source/$dir";
+            $destDir = "$destination/$dir";
+    
+            if (!file_exists($sourceDir)) continue;
+    
+            $except = is_array($options) && isset($options['except']) ? $options['except'] : [];
+    
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($sourceDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+    
+            foreach ($iterator as $item) {
+                $relativePath = substr($item->getPathname(), strlen($sourceDir) + 1);
+                
+                // Verifica se o item está na lista de exceções
+                $shouldSkip = false;
+                foreach ($except as $pattern) {
+                    if (fnmatch($pattern, $relativePath)) {
+                        $shouldSkip = true;
+                        break;
+                    }
+                }
+                
+                if ($shouldSkip) {
+                    Log::debug("Pulando item protegido: $dir/$relativePath");
+                    continue;
+                }
+    
+                $targetPath = "$destDir/$relativePath";
+    
+                if ($item->isDir()) {
+                    if (!file_exists($targetPath)) {
+                        mkdir($targetPath, 0755, true);
+                    }
+                } else {
+                    // Verifica se o arquivo existe e é diferente
+                    if (!file_exists($targetPath) || 
+                        md5_file($item->getPathname()) !== md5_file($targetPath)) {
+                        copy($item->getPathname(), $targetPath);
+                        Log::info("Arquivo atualizado: $dir/$relativePath");
+                    }
+                }
+            }
+        }
+    }
+    
+    protected function updateVersionFile()
+    {
+        $envPath = base_path('.env');
+        if (file_exists($envPath)) {
+            $content = preg_replace(
+                '/APP_VERSION=[^\n]*/',
+                'APP_VERSION='.$this->latestVersion,
+                file_get_contents($envPath)
+            );
+            file_put_contents($envPath, $content);
+        }
+        
+        config(['app.version' => $this->latestVersion]);
+    }
+    
+    private function streamUpdateProgress($message, $progress, $isError = false, $completed = false)
+    {
+        $data = compact('message', 'progress', 'isError', 'completed');
+        Log::info('Progresso da Atualização', $data);
+        
+        if (request()->wantsJson()) {
+            return response()->json($data);
+        }
+        
+        echo "event: message\n";
+        echo "data: " . json_encode($data) . "\n\n";
+        ob_flush();
+        flush();
+        
+        if ($completed || $isError) {
+            exit;
+        }
+    }
+}

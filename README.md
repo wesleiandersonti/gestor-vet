@@ -1,6 +1,6 @@
-# Gestor Vet
+# Gestor Veet
 
-Sistema web para gestao de operacoes IPTV baseado em Laravel.
+Sistema web para gestao de operacoes IPTV e administracao interna, baseado em Laravel.
 
 ## Instalacao no Ubuntu (comando unico)
 
