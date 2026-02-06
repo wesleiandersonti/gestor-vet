@@ -111,6 +111,12 @@ Na VM, execute:
 bash scripts/update-ubuntu.sh
 ```
 
+Se voce nao souber o caminho do projeto, use o atualizador automatico:
+
+```bash
+bash -lc "git clone https://github.com/wesleiandersonti/gestor-vet.git /tmp/gestor-vet-update && bash /tmp/gestor-vet-update/scripts/update-gestor.sh"
+```
+
 ## Licenca
 
 Uso interno. Todos os direitos reservados.

@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR=${APP_DIR:-/var/www/gestor-vet}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+APP_DIR=${APP_DIR:-$DEFAULT_APP_DIR}
+
+if [ ! -d "$APP_DIR" ] || [ ! -f "$APP_DIR/artisan" ]; then
+  echo "Diretorio do projeto invalido: $APP_DIR"
+  echo "Defina APP_DIR com o caminho correto."
+  exit 1
+fi
 
 cd "$APP_DIR"
 
-git pull
+git pull --ff-only
 
 composer install --no-dev --optimize-autoloader
 npm install
