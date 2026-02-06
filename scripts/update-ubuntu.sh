@@ -15,7 +15,14 @@ cd "$APP_DIR"
 
 git pull --ff-only
 
-composer install --no-dev --optimize-autoloader
+PHP_MAJOR_MINOR=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+if [ "$PHP_MAJOR_MINOR" != "8.2" ]; then
+  echo "PHP atual: $PHP_MAJOR_MINOR"
+  echo "Este projeto requer PHP 8.2. Atualize o PHP da VM e rode novamente."
+  exit 1
+fi
+
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 npm install
 npm run prod
 

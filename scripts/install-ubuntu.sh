@@ -15,7 +15,9 @@ fi
 
 sudo apt-get update
 sudo apt-get install -y git unzip curl ca-certificates software-properties-common build-essential
-sudo apt-get install -y php php-cli php-mbstring php-xml php-curl php-zip php-mysql php-bcmath php-intl php-gd php-soap php-readline php-redis libapache2-mod-php
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt-get update
+sudo apt-get install -y php8.2 php8.2-cli libapache2-mod-php8.2 php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-mysql php8.2-bcmath php8.2-intl php8.2-gd php8.2-soap php8.2-readline php8.2-redis
 sudo apt-get install -y mysql-server apache2
 
 if command -v systemctl >/dev/null 2>&1; then
@@ -27,6 +29,10 @@ fi
 if ! command -v composer >/dev/null 2>&1; then
   curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 fi
+
+sudo a2dismod php8.1 >/dev/null 2>&1 || true
+sudo a2enmod php8.2
+sudo systemctl restart apache2
 
 if ! command -v node >/dev/null 2>&1; then
   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -90,7 +96,7 @@ set_env "DB_PASSWORD" "${DB_PASS}"
 set_env "APP_URL" "${APP_URL}"
 
 if [ -f composer.json ]; then
-  composer install
+  COMPOSER_ALLOW_SUPERUSER=1 composer install
 fi
 
 if [ -f package.json ]; then
