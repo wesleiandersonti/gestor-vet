@@ -36,6 +36,8 @@ Valores padrao usados pelo script (podem ser sobrescritos por variaveis de ambie
 - `DB_PASS=gestorvet`
 - `ACCESS_MODE=2` (1=dominio, 2=ip local, 3=ip publico)
 - `DOMAIN=` (obrigatorio quando `ACCESS_MODE=1`)
+- `INSTALL_SSL=s` (executa SSL sem pergunta quando usar dominio)
+- `CERT_EMAIL=seu-email@dominio.com` (opcional no SSL)
 
 Exemplo com valores customizados:
 
@@ -49,10 +51,17 @@ Exemplo forçando acesso por IP local:
 ACCESS_MODE=2 bash scripts/install-ubuntu.sh
 ```
 
+Exemplo sem perguntas (modo automatico):
+
+```bash
+ACCESS_MODE=2 DB_NAME=gestorvet DB_USER=gestorvet DB_PASS=gestorvet bash scripts/install-ubuntu.sh
+```
+
 ## O que o script faz
 
 - Detecta a versao do Ubuntu
 - Instala dependencias (PHP, Composer, Node.js, MySQL, Apache)
+- Exibe um fluxo visual por etapas (1/8 ate 8/8)
 - Configura o banco e usuario local
 - Prepara o `.env` e gera a chave da aplicacao
 - Instala dependencias do projeto
@@ -61,6 +70,7 @@ ACCESS_MODE=2 bash scripts/install-ubuntu.sh
 - Pergunta se o acesso sera por dominio, IP local ou IP publico
 - Configura o Apache com o host escolhido
 - Oferece SSL LetsEncrypt quando houver dominio
+- Evita prompts interativos do apt em ambientes de VM
 
 ## Variaveis de ambiente
 
