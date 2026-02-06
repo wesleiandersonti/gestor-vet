@@ -103,6 +103,14 @@ php artisan route:cache
 php artisan view:cache
 ```
 
+## Atualizacao do sistema
+
+Na VM, execute:
+
+```bash
+bash scripts/update-ubuntu.sh
+```
+
 ## Licenca
 
 Uso interno. Todos os direitos reservados.
