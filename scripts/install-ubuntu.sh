@@ -9,9 +9,13 @@ fi
 UBU=$(lsb_release -rs)
 echo "Ubuntu ${UBU}"
 
+if [ "${UBU}" != "22.04" ]; then
+  echo "Aviso: este instalador foi preparado para Ubuntu 22.04."
+fi
+
 sudo apt-get update
-sudo apt-get install -y git unzip curl ca-certificates software-properties-common
-sudo apt-get install -y php php-cli php-mbstring php-xml php-curl php-zip php-mysql php-bcmath php-intl
+sudo apt-get install -y git unzip curl ca-certificates software-properties-common build-essential
+sudo apt-get install -y php php-cli php-mbstring php-xml php-curl php-zip php-mysql php-bcmath php-intl php-gd php-soap php-readline php-redis
 sudo apt-get install -y mysql-server
 
 if command -v systemctl >/dev/null 2>&1; then
