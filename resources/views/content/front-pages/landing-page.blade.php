@@ -41,7 +41,14 @@ $configData = Helper::appClasses();
 
         <!-- INÍCIO DO BLOCO DE LOGO -->
         @php
-          $empresa = DB::table('company_details')->where('user_id', 160)->first(); // ajuste o user_id conforme necessário
+          $empresa = null;
+          try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('company_details')) {
+              $empresa = DB::table('company_details')->where('user_id', 160)->first(); // ajuste o user_id conforme necessário
+            }
+          } catch (\Throwable $e) {
+            $empresa = null;
+          }
         @endphp
 
         <div class="d-flex align-items-center justify-content-center mb-4">
@@ -436,9 +443,16 @@ $configData = Helper::appClasses();
         <div class="row gy-4 pt-lg-3">
             @php
                 // Buscar os planos do banco de dados ordenados por preço
-                $planos = DB::table('planos_renovacao')
-                            ->orderBy('preco', 'asc')
-                            ->get();
+                $planos = collect();
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('planos_renovacao')) {
+                        $planos = DB::table('planos_renovacao')
+                                    ->orderBy('preco', 'asc')
+                                    ->get();
+                    }
+                } catch (\Throwable $e) {
+                    $planos = collect();
+                }
                 
                 // Definir os ícones para cada plano (ajuste conforme seus assets)
                 $icones = [
