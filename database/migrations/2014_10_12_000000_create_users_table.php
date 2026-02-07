@@ -15,7 +15,7 @@ return new class extends Migration {
       $table->string('name');
       $table->string('whatsapp')->unique();
       $table->string('password');
-      $table->foreignId('role_id')->constrained(); // Adiciona a coluna 'role_id'
+      $table->unsignedBigInteger('role_id')->default(3);
       $table->rememberToken();
       $table->timestamps();
     });

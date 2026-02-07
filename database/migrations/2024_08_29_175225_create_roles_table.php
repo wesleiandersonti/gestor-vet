@@ -38,6 +38,21 @@ class CreateRolesTable extends Migration
                 'updated_at' => now(),
             ],
         ]);
+
+        if (Schema::hasTable('users') && Schema::hasColumn('users', 'role_id')) {
+            $foreignExists = DB::table('information_schema.KEY_COLUMN_USAGE')
+                ->whereRaw('TABLE_SCHEMA = DATABASE()')
+                ->where('TABLE_NAME', 'users')
+                ->where('COLUMN_NAME', 'role_id')
+                ->where('REFERENCED_TABLE_NAME', 'roles')
+                ->exists();
+
+            if (!$foreignExists) {
+                Schema::table('users', function (Blueprint $table) {
+                    $table->foreign('role_id')->references('id')->on('roles');
+                });
+            }
+        }
     }
 
     /**
@@ -47,6 +62,16 @@ class CreateRolesTable extends Migration
      */
     public function down()
     {
+        if (Schema::hasTable('users')) {
+            try {
+                Schema::table('users', function (Blueprint $table) {
+                    $table->dropForeign(['role_id']);
+                });
+            } catch (\Throwable $e) {
+                // no-op
+            }
+        }
+
         Schema::dropIfExists('roles');
     }
 }
