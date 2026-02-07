@@ -22,6 +22,12 @@ if [ "$PHP_MAJOR_MINOR" != "8.2" ]; then
   exit 1
 fi
 
+if ! php -m | grep -qi ioncube; then
+  echo "ionCube Loader nao carregado no PHP CLI."
+  echo "Instale php8.2-ioncube-loader e rode novamente."
+  exit 1
+fi
+
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js nao encontrado. Execute o scripts/install-ubuntu.sh para corrigir."
   exit 1

@@ -149,6 +149,7 @@ apt_install git unzip curl ca-certificates software-properties-common build-esse
 sudo add-apt-repository ppa:ondrej/php -y
 apt_update
 apt_install php8.2 php8.2-cli libapache2-mod-php8.2 php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-mysql php8.2-bcmath php8.2-intl php8.2-gd php8.2-soap php8.2-readline php8.2-redis
+apt_install php8.2-ioncube-loader || apt_install php-ioncube-loader || true
 apt_install mysql-server apache2
 
 if command -v systemctl >/dev/null 2>&1; then
@@ -158,6 +159,10 @@ else
   sudo service apache2 start
 fi
 ok "Dependencias instaladas"
+
+if ! php -m | grep -qi ioncube; then
+  fatal "ionCube Loader nao carregado no PHP CLI. Instale php8.2-ioncube-loader e rode novamente."
+fi
 
 line
 info "Etapa 2/8: configurando Composer e Node.js"

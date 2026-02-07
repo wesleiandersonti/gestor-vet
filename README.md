@@ -43,6 +43,7 @@ flowchart LR
 ## Stack tecnica
 
 - Laravel 10 / PHP 8.2
+- ionCube Loader ativo no PHP CLI e Apache
 - Fortify, Jetstream, Sanctum
 - Laravel Mix (Webpack), Bootstrap 5
 - Node.js 20 LTS
@@ -174,6 +175,7 @@ Pipeline em `.github/workflows/ci.yml`:
 
 - `composer: command not found`: instale Composer
 - `PHP atual: 8.1`: atualize a VM para PHP 8.2
+- `post-autoload-dump error 199`: instale/ative `php8.2-ioncube-loader` no CLI
 - Node antigo (12/18): o instalador atualiza automaticamente para Node 20
 - pagina default Apache: habilite `gestor-vet.conf` e desabilite `000-default`
 - SSL em IP: LetsEncrypt exige dominio valido
