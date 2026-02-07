@@ -37,7 +37,8 @@ install_ioncube_manual() {
   local ioncube_url="${IONCUBE_URL:-https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz}"
   local ioncube_tarball="${IONCUBE_TARBALL:-$work_dir/ioncube.tar.gz}"
 
-  php_ext_dir=$(php-config --extension-dir 2>/dev/null || php -i | awk -F'=> ' '/^extension_dir =>/ {print $2; exit}')
+  php_ext_dir=$(php-config --extension-dir 2>/dev/null || php -r 'echo ini_get("extension_dir");')
+  php_ext_dir=$(printf '%s' "$php_ext_dir" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   if [ -z "$php_ext_dir" ]; then
     return 1
   fi
