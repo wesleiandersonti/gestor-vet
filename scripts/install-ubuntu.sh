@@ -22,6 +22,14 @@ line() {
   printf '%s\n' "------------------------------------------------------------"
 }
 
+apt_update() {
+  sudo apt-get -o Acquire::ForceIPv4=true update
+}
+
+apt_install() {
+  sudo apt-get -o Acquire::ForceIPv4=true install -y "$@"
+}
+
 info() {
   printf "%b[INFO]%b %s\n" "$C_BLUE" "$C_RESET" "$*"
 }
@@ -123,8 +131,8 @@ line
 
 if ! command -v lsb_release >/dev/null 2>&1; then
   info "Instalando lsb-release"
-  sudo apt-get update
-  sudo apt-get install -y lsb-release
+  apt_update
+  apt_install lsb-release
 fi
 
 UBU=$(lsb_release -rs)
@@ -135,12 +143,13 @@ fi
 
 line
 info "Etapa 1/8: instalando dependencias de sistema"
-sudo apt-get update
-sudo apt-get install -y git unzip curl ca-certificates software-properties-common build-essential
+echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4 >/dev/null
+apt_update
+apt_install git unzip curl ca-certificates software-properties-common build-essential
 sudo add-apt-repository ppa:ondrej/php -y
-sudo apt-get update
-sudo apt-get install -y php8.2 php8.2-cli libapache2-mod-php8.2 php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-mysql php8.2-bcmath php8.2-intl php8.2-gd php8.2-soap php8.2-readline php8.2-redis
-sudo apt-get install -y mysql-server apache2
+apt_update
+apt_install php8.2 php8.2-cli libapache2-mod-php8.2 php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-mysql php8.2-bcmath php8.2-intl php8.2-gd php8.2-soap php8.2-readline php8.2-redis
+apt_install mysql-server apache2
 
 if command -v systemctl >/dev/null 2>&1; then
   sudo systemctl enable --now mysql apache2
@@ -156,9 +165,24 @@ if ! command -v composer >/dev/null 2>&1; then
   curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 fi
 
+NEED_NODE_SETUP="false"
 if ! command -v node >/dev/null 2>&1; then
-  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-  sudo apt-get install -y nodejs
+  NEED_NODE_SETUP="true"
+else
+  NODE_MAJOR=$(node -v | sed -E 's/^v([0-9]+).*/\1/')
+  if [ "${NODE_MAJOR}" -lt 20 ]; then
+    warn "Node atual v${NODE_MAJOR}. Atualizando para Node 20 LTS."
+    NEED_NODE_SETUP="true"
+  fi
+fi
+
+if [ "$NEED_NODE_SETUP" = "true" ]; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  apt_install nodejs
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  apt_install npm
 fi
 ok "Composer e Node.js prontos"
 
@@ -315,7 +339,7 @@ if [ "$ACCESS_MODE_RESOLVED" = "domain" ]; then
   fi
 
   if is_yes "$INSTALL_SSL"; then
-    sudo apt-get install -y certbot python3-certbot-apache
+    apt_install certbot python3-certbot-apache
     CERT_EMAIL=${CERT_EMAIL:-}
     if [ -z "$CERT_EMAIL" ]; then
       read -r -p "Email do certificado (opcional): " CERT_EMAIL

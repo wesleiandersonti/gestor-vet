@@ -45,6 +45,7 @@ flowchart LR
 - Laravel 10 / PHP 8.2
 - Fortify, Jetstream, Sanctum
 - Laravel Mix (Webpack), Bootstrap 5
+- Node.js 20 LTS
 - MySQL 8
 - Apache 2
 - Ubuntu 22.04 (recomendado)
@@ -173,6 +174,7 @@ Pipeline em `.github/workflows/ci.yml`:
 
 - `composer: command not found`: instale Composer
 - `PHP atual: 8.1`: atualize a VM para PHP 8.2
+- Node antigo (12/18): o instalador atualiza automaticamente para Node 20
 - pagina default Apache: habilite `gestor-vet.conf` e desabilite `000-default`
 - SSL em IP: LetsEncrypt exige dominio valido
 

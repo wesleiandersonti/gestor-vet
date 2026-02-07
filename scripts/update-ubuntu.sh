@@ -22,6 +22,18 @@ if [ "$PHP_MAJOR_MINOR" != "8.2" ]; then
   exit 1
 fi
 
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js nao encontrado. Execute o scripts/install-ubuntu.sh para corrigir."
+  exit 1
+fi
+
+NODE_MAJOR=$(node -v | sed -E 's/^v([0-9]+).*/\1/')
+if [ "$NODE_MAJOR" -lt 20 ]; then
+  echo "Node atual: v$NODE_MAJOR"
+  echo "Este projeto requer Node.js 20 ou superior. Atualize o Node e rode novamente."
+  exit 1
+fi
+
 if [ -f composer.lock ]; then
   COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
 else
