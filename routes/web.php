@@ -161,19 +161,19 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/check-update', [UpdateController::class, 'checkForUpdates'])->name('check-update');
+    Route::get('/check-update', [UpdateController::class, 'checkForUpdates'])->middleware('technical.guard')->name('check-update');
 });
 
-Route::post('/update', [UpdateController::class, 'performUpdate'])->name('perform-update');
+Route::post('/update', [UpdateController::class, 'performUpdate'])->middleware('technical.guard')->name('perform-update');
 
 Route::get('/check-exec', function() {
     return response()->json([
         'available' => function_exists('exec'),
         'message' => function_exists('exec') ? '' : 'A função exec() não está disponível no servidor'
     ]);
-})->name('check-exec'); // Adicione esta parte para nomear a rota
+})->middleware('technical.guard')->name('check-exec'); // Adicione esta parte para nomear a rota
 
-Route::post('/github-webhook', [UpdateController::class, 'handleWebhook']);
+Route::post('/github-webhook', [UpdateController::class, 'handleWebhook'])->middleware('technical.guard');
 
 Route::get('/check-update-status', function() {
     $lockFile = storage_path('app/update_in_progress.lock');
@@ -186,14 +186,14 @@ Route::get('/check-update-status', function() {
             : null,
         'timestamp' => now()->toDateTimeString()
     ]);
-})->name('update.status');
+})->middleware('technical.guard')->name('update.status');
 
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::post('/update', [UpdateController::class, 'performUpdate'])->name('perform-update');
+    Route::post('/update', [UpdateController::class, 'performUpdate'])->middleware('technical.guard')->name('perform-update');
 });
 
 
-Route::prefix('update')->group(function() {
+Route::prefix('update')->middleware('technical.guard')->group(function() {
     Route::get('composer', function() {
         // Simular instalação de dependências
         return response()->json(['status' => 'success']);
@@ -548,17 +548,17 @@ Route::post('/webhook/mercadopago', [WebhookController::class, 'handle'])->name(
 Route::get('/run-scheduled-tasks', function () {
     Artisan::call('clientes:verificar-vencidos');
     return 'Scheduled tasks executed';
-})->name('run-scheduled-tasks');
+})->middleware('technical.guard')->name('run-scheduled-tasks');
 
 Route::get('/run-campanhas', function () {
     Artisan::call('campanhas:disparar');
     return 'Campanhas executed';
-})->name('run-campanhas');
+})->middleware('technical.guard')->name('run-campanhas');
 
 Route::get('/migrar', function () {
     $output = shell_exec('php ' . base_path('run_migrations.php'));
     return "<pre>$output</pre>";
-})->name('migrar');
+})->middleware('technical.guard')->name('migrar');
 
 /*
 |--------------------------------------------------------------------------

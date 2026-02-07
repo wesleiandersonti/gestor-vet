@@ -266,9 +266,9 @@ fi
 
 if [ -f package.json ]; then
   if [ -f package-lock.json ]; then
-    npm ci
+    npm ci --legacy-peer-deps
   else
-    npm install
+    npm install --legacy-peer-deps
   fi
 fi
 ok "Dependencias do projeto instaladas"

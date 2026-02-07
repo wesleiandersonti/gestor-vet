@@ -38,4 +38,8 @@ return [
         'retry' => 3,
     ],
 
+    'technical_routes' => [
+        'token' => env('TECHNICAL_ROUTES_TOKEN'),
+    ],
+
 ];
