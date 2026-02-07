@@ -180,6 +180,8 @@ Pipeline em `.github/workflows/ci.yml`:
 - sem rota para `downloads.ioncube.com`: envie o tar.gz para a VM e use `IONCUBE_TARBALL=/caminho/ioncube.tar.gz`
 - `Table gestorvet.users doesn't exist` durante install: atualize para a ultima `main` e rode `php artisan migrate --force`
 - Node antigo (12/18): o instalador atualiza automaticamente para Node 20
+- erro no build SCSS do SweetAlert2 (`Undefined operation var(--swal2-width) * 0.5`): atualize para a ultima `main`
+- erro de minificacao em `cards-analytics.js`: atualize para a ultima `main` (build via Babel habilitado)
 - pagina default Apache: habilite `gestor-vet.conf` e desabilite `000-default`
 - SSL em IP: LetsEncrypt exige dominio valido
 

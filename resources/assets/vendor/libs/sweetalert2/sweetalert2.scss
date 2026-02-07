@@ -1,13 +1,13 @@
-@use '../../scss/_bootstrap-extended/include' as light;
-@use '../../scss/_bootstrap-extended/include-dark' as dark;
-@import '../../scss/_custom-variables/libs';
-@import '~sweetalert2/src/sweetalert2';
+@use "../../scss/_bootstrap-extended/include" as light;
+@use "../../scss/_bootstrap-extended/include-dark" as dark;
+@import "../../scss/_custom-variables/libs";
+@import "~sweetalert2/src/sweetalert2";
 
 // Sweet Alert2 Modal
 .swal2-modal.swal2-popup {
   .swal2-title {
     margin: 1.875rem 0 1rem 0;
-    max-width: $swal2-width * 0.5;
+    max-width: calc(#{$swal2-width} * 0.5);
     line-height: light.$line-height-base;
   }
 
@@ -128,7 +128,9 @@
     .swal2-popup .swal2-input,
     .swal2-popup .swal2-file,
     .swal2-popup .swal2-textarea {
-      border: light.$input-border-width solid light.$input-border-color !important;
+      border: light.$input-border-width
+        solid
+        light.$input-border-color !important;
       font-size: light.$font-size-lg;
       color: light.$body-color;
 
@@ -148,7 +150,7 @@
         border-color: rgba(light.$success, 0.2);
       }
 
-      [class^='swal2-success-line'] {
+      [class^="swal2-success-line"] {
         background-color: light.$success;
       }
     }
@@ -171,7 +173,7 @@
     .swal2-popup .swal2-icon.swal2-error {
       border-color: rgba(light.$danger, 0.6);
 
-      [class^='swal2-x-mark-line'] {
+      [class^="swal2-x-mark-line"] {
         border-color: light.$danger;
       }
     }
@@ -231,7 +233,9 @@
     .swal2-popup .swal2-file,
     .swal2-popup .swal2-textarea {
       color: dark.$body-color;
-      border: dark.$input-border-width solid dark.$input-border-color !important;
+      border: dark.$input-border-width
+        solid
+        dark.$input-border-color !important;
       font-size: dark.$font-size-lg;
 
       @include dark.border-radius(dark.$border-radius-lg);
@@ -250,7 +254,7 @@
         border-color: rgba(dark.$success, 0.2);
       }
 
-      [class^='swal2-success-line'] {
+      [class^="swal2-success-line"] {
         background-color: dark.$success;
       }
     }
@@ -273,14 +277,16 @@
     .swal2-popup .swal2-icon.swal2-error {
       border-color: rgba(dark.$danger, 0.6);
 
-      [class^='swal2-x-mark-line'] {
+      [class^="swal2-x-mark-line"] {
         border-color: dark.$danger;
       }
     }
   }
 }
 
-.swal2-popup .swal2-actions.swal2-loading :not(.swal2-styled).swal2-confirm::after {
+.swal2-popup
+  .swal2-actions.swal2-loading
+  :not(.swal2-styled).swal2-confirm::after {
   display: block;
   width: 1em;
   height: 1em;
@@ -297,18 +303,18 @@
 
 // IE Specific
 @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
-  .swal2-modal:not([style='display: none;']),
-  .swal2-icon:not([style='display: none;']),
-  .swal2-actions:not([style='display: none;']),
-  .swal2-image:not([style='display: none;']),
-  .swal2-input:not([style='display: none;']),
-  .swal2-file:not([style='display: none;']),
-  .swal2-range:not([style='display: none;']),
-  .swal2-select:not([style='display: none;']),
-  .swal2-radio:not([style='display: none;']),
-  .swal2-checkbox:not([style='display: none;']),
-  .swal2-textarea:not([style='display: none;']),
-  .swal2-footer:not([style='display: none;']) {
+  .swal2-modal:not([style="display: none;"]),
+  .swal2-icon:not([style="display: none;"]),
+  .swal2-actions:not([style="display: none;"]),
+  .swal2-image:not([style="display: none;"]),
+  .swal2-input:not([style="display: none;"]),
+  .swal2-file:not([style="display: none;"]),
+  .swal2-range:not([style="display: none;"]),
+  .swal2-select:not([style="display: none;"]),
+  .swal2-radio:not([style="display: none;"]),
+  .swal2-checkbox:not([style="display: none;"]),
+  .swal2-textarea:not([style="display: none;"]),
+  .swal2-footer:not([style="display: none;"]) {
     display: flex;
   }
 }
