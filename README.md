@@ -29,6 +29,10 @@ O Gestor Veet foi desenhado para centralizar o ciclo operacional de provedores e
 - QPanel (sincronizacao opcional)
 - GitHub (CI e fluxo de atualizacao)
 
+## Documentacao tecnica
+
+- Estrutura do projeto: `docs/ESTRUTURA.md`
+
 ## Fluxo de negocio
 
 ```mermaid
