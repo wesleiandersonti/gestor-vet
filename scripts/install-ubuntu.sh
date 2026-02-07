@@ -30,6 +30,37 @@ apt_install() {
   sudo apt-get -o Acquire::ForceIPv4=true install -y "$@"
 }
 
+install_ioncube_manual() {
+  local php_ext_dir
+  local loader_file="ioncube_loader_lin_8.2.so"
+  local work_dir="/tmp/ioncube-install"
+
+  php_ext_dir=$(php-config --extension-dir 2>/dev/null || php -i | awk -F'=> ' '/^extension_dir =>/ {print $2; exit}')
+  if [ -z "$php_ext_dir" ]; then
+    return 1
+  fi
+
+  rm -rf "$work_dir"
+  mkdir -p "$work_dir"
+  curl -fsSL "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz" -o "$work_dir/ioncube.tar.gz"
+  tar -xzf "$work_dir/ioncube.tar.gz" -C "$work_dir"
+
+  if [ ! -f "$work_dir/ioncube/$loader_file" ]; then
+    return 1
+  fi
+
+  sudo cp "$work_dir/ioncube/$loader_file" "$php_ext_dir/$loader_file"
+  echo "zend_extension=$php_ext_dir/$loader_file" | sudo tee /etc/php/8.2/cli/conf.d/00-ioncube.ini >/dev/null
+
+  if [ -d /etc/php/8.2/apache2/conf.d ]; then
+    echo "zend_extension=$php_ext_dir/$loader_file" | sudo tee /etc/php/8.2/apache2/conf.d/00-ioncube.ini >/dev/null
+  fi
+
+  if [ -d /etc/php/8.2/fpm/conf.d ]; then
+    echo "zend_extension=$php_ext_dir/$loader_file" | sudo tee /etc/php/8.2/fpm/conf.d/00-ioncube.ini >/dev/null
+  fi
+}
+
 info() {
   printf "%b[INFO]%b %s\n" "$C_BLUE" "$C_RESET" "$*"
 }
@@ -161,7 +192,12 @@ fi
 ok "Dependencias instaladas"
 
 if ! php -m | grep -qi ioncube; then
-  fatal "ionCube Loader nao carregado no PHP CLI. Instale php8.2-ioncube-loader e rode novamente."
+  warn "Pacote ionCube nao encontrado no apt. Tentando instalacao manual..."
+  install_ioncube_manual || fatal "Falha ao instalar ionCube Loader manualmente."
+fi
+
+if ! php -m | grep -qi ioncube; then
+  fatal "ionCube Loader nao carregado no PHP CLI."
 fi
 
 line
