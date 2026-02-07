@@ -55,9 +55,36 @@ flowchart LR
 - Apache 2
 - Ubuntu 22.04 (recomendado)
 
-## Instalacao em VM limpa (comando unico)
+## 🚀 Instalacao em VM Limpa (Recomendado)
 
-Execute como `root` em Ubuntu 22.04:
+### Opcao 1: Preparacao Interativa (Recomendado para Primeira Instalacao)
+
+Script moderno e interativo que prepara a VM completa antes de instalar o sistema:
+
+```bash
+# 1. Baixe e execute o preparador
+wget -O prepare-vm.sh https://raw.githubusercontent.com/wesleiandersonti/gestor-vet/main/scripts/prepare-vm.sh
+
+# 2. Execute como root
+sudo bash prepare-vm.sh
+```
+
+**O que o preparador faz:**
+
+- ✅ Atualiza o sistema Ubuntu 22.04
+- ✅ Instala QEMU Guest Agent
+- ✅ Instala Apache 2
+- ✅ Instala MySQL Server
+- ✅ Instala PHP 8.2 + todas as extensoes
+- ✅ Instala ionCube Loader
+- ✅ Instala Node.js 20 LTS
+- ✅ Instala Composer
+- ✅ Configura banco de dados inicial
+- ✅ Interface interativa com progresso visual
+
+### Opcao 2: Comando Unico Automatico
+
+Se a VM ja esta preparada ou voce prefere automatizado:
 
 ```bash
 bash -lc 'set -euo pipefail; sudo apt-get update && sudo apt-get install -y git && rm -rf /root/gestor-vet && git clone --depth 1 https://github.com/wesleiandersonti/gestor-vet.git /root/gestor-vet && cd /root/gestor-vet && ACCESS_MODE=2 DB_NAME=gestorvet DB_USER=gestorvet DB_PASS=gestorvet bash scripts/install-ubuntu.sh'
