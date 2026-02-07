@@ -2,35 +2,34 @@
 
 Plataforma de gestao IPTV para operacao comercial, cobranca recorrente e comunicacao automatizada com clientes.
 
-## Visao geral
+## Proposta
 
-O Gestor Veet centraliza o ciclo operacional de provedores e revendas IPTV:
+O Gestor Veet foi desenhado para centralizar o ciclo operacional de provedores e revendas:
 
 - cadastro e ciclo de vida de clientes
-- controle de planos e renovacoes
-- emissao e acompanhamento de cobrancas
-- automacoes de notificacao por WhatsApp
-- painel administrativo com perfis e permissoes
+- controle de planos, renovacoes e vencimentos
+- cobranca com fluxo de pagamento
+- notificacoes automatizadas por WhatsApp
+- painel administrativo com perfis e permissao
 
-## Modulos do projeto
+## Modulos principais
 
-- Clientes: cadastro, importacao/exportacao, cobranca manual e historico
-- Planos: CRUD, duplicacao e gestao de renovacoes
-- Campanhas: disparos programados com templates e placeholders
-- Revendas: controle de revenda e usuarios revendedores
-- Pagamentos: fluxo PIX com Mercado Pago e webhook de confirmacao
-- Conexoes WhatsApp: integracao com Evolution API (v1 e v2)
-- Dashboard: indicadores financeiros e operacionais
-- Atualizacoes: rotinas para update de codigo e deploy
+- Clientes: cadastro, importacao/exportacao e historico
+- Planos: CRUD, duplicacao e renovacao
+- Campanhas: disparos com template e placeholders
+- Revendas: gestao de revendedores e usuarios
+- Pagamentos: Mercado Pago com webhook de confirmacao
+- Conexoes WhatsApp: Evolution API (v1 e v2)
+- Dashboard: indicadores operacionais e financeiros
 
 ## Integracoes
 
 - Mercado Pago
-- Evolution API (WhatsApp)
-- QPanel (sincronizacao opcional de dados de cliente)
-- GitHub (fluxo de update e CI)
+- Evolution API
+- QPanel (sincronizacao opcional)
+- GitHub (CI e fluxo de atualizacao)
 
-## Fluxo operacional
+## Fluxo de negocio
 
 ```mermaid
 flowchart LR
@@ -43,86 +42,92 @@ flowchart LR
 
 ## Stack tecnica
 
-- Backend: Laravel 10 / PHP 8.2
-- Auth e seguranca: Fortify, Jetstream, Sanctum
-- Frontend: Laravel Mix (Webpack), Bootstrap 5
-- Banco de dados: MySQL 8
-- Servidor web: Apache 2
-- Infra recomendada: Ubuntu 22.04
+- Laravel 10 / PHP 8.2
+- Fortify, Jetstream, Sanctum
+- Laravel Mix (Webpack), Bootstrap 5
+- MySQL 8
+- Apache 2
+- Ubuntu 22.04 (recomendado)
 
-## Instalacao rapida (Ubuntu 22.04)
+## Instalacao em VM limpa (comando unico)
 
-Na raiz do projeto:
+Execute como `root` em Ubuntu 22.04:
+
+```bash
+bash -lc 'set -euo pipefail; sudo apt-get update && sudo apt-get install -y git && rm -rf /root/gestor-vet && git clone --depth 1 https://github.com/wesleiandersonti/gestor-vet.git /root/gestor-vet && cd /root/gestor-vet && ACCESS_MODE=2 DB_NAME=gestorvet DB_USER=gestorvet DB_PASS=gestorvet bash scripts/install-ubuntu.sh'
+```
+
+## Instalacao local (projeto ja clonado)
 
 ```bash
 bash scripts/install-ubuntu.sh
 ```
 
-Tudo em uma linha (clone + install):
+O instalador roda em fluxo guiado (8 etapas): dependencias, PHP/Node, banco, `.env`, build, migrations e Apache.
 
-```bash
-bash -lc "git clone https://github.com/wesleiandersonti/gestor-vet.git && cd gestor-vet && bash scripts/install-ubuntu.sh"
-```
-
-## Instalador interativo
-
-O instalador executa um fluxo guiado em 8 etapas:
-
-1. Dependencias de sistema
-2. Composer e Node.js
-3. Apache + PHP 8.2
-4. Definicao de acesso (dominio / IP local / IP publico)
-5. Configuracao do banco
-6. `.env` + dependencias do app
-7. build + migrations
-8. virtual host Apache + SSL opcional
-
-## Parametros de automacao
-
-Voce pode rodar sem perguntas usando variaveis de ambiente:
+## Parametros do instalador
 
 - `DB_NAME` (padrao: `gestorvet`)
 - `DB_USER` (padrao: `gestorvet`)
 - `DB_PASS` (padrao: `gestorvet`)
 - `ACCESS_MODE` (`1=dominio`, `2=ip local`, `3=ip publico`)
-- `DOMAIN` (obrigatorio se `ACCESS_MODE=1`)
-- `INSTALL_SSL` (`s` para instalar SSL sem prompt)
-- `CERT_EMAIL` (email para certbot)
+- `DOMAIN` (obrigatorio quando `ACCESS_MODE=1`)
+- `INSTALL_SSL` (`s` para instalar SSL sem pergunta)
+- `CERT_EMAIL` (opcional para certbot)
 
-Exemplo (IP local, sem prompts):
+Exemplo sem prompts:
 
 ```bash
 ACCESS_MODE=2 DB_NAME=gestorvet DB_USER=gestorvet DB_PASS=gestorvet bash scripts/install-ubuntu.sh
 ```
 
-## Locks de dependencias
+## Atualizacao do sistema
 
-Este repositorio utiliza lockfiles para garantir deploy previsivel:
+Atualizacao padrao:
+
+```bash
+bash scripts/update-ubuntu.sh
+```
+
+Atualizacao com descoberta automatica do diretorio:
+
+```bash
+bash scripts/update-gestor.sh
+```
+
+## Confiabilidade de deploy
+
+Este repositorio usa lockfiles para garantir previsibilidade:
 
 - `composer.lock`
 - `package-lock.json`
 
-Sempre atualize esses arquivos junto com alteracoes de dependencia.
+Sempre versione lockfiles junto com qualquer alteracao de dependencia.
 
-## Configuracao de ambiente
+## Seguranca operacional
 
-Base de ambiente: `.env.example`
+Rotas tecnicas sensiveis sao protegidas em producao por `technical.guard`.
 
-Campos minimos:
+- permite acesso com usuario admin autenticado
+- ou token tecnico em `X-Technical-Token`
+- configure `TECHNICAL_ROUTES_TOKEN` no `.env`
 
-```env
-APP_NAME=GestorVeet
-APP_ENV=local
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://127.0.0.1
+Exemplo:
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=gestorvet
-DB_USERNAME=gestorvet
-DB_PASSWORD=gestorvet
+```bash
+curl -H "X-Technical-Token: SEU_TOKEN" "https://seu-dominio/check-update-status"
+```
+
+## Queue com Supervisor
+
+Arquivo de referencia:
+
+- `deploy/supervisor/gestor-veet-worker.conf`
+
+Instalacao rapida:
+
+```bash
+APP_DIR=/var/www/gestor-vet bash scripts/install-supervisor-queue.sh
 ```
 
 ## Operacao em producao
@@ -131,12 +136,6 @@ Scheduler (obrigatorio):
 
 ```bash
 * * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
-```
-
-Queue worker (quando aplicavel):
-
-```bash
-php artisan queue:work
 ```
 
 Build e caches:
@@ -149,55 +148,20 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-Comandos de negocio uteis:
+Comandos de negocio:
 
 ```bash
 php artisan clientes:verificar-vencidos
 php artisan campanhas:disparar
 ```
 
-## Atualizacao do sistema
+## Ambiente
 
-Atualizacao padrao na VM:
-
-```bash
-bash scripts/update-ubuntu.sh
-```
-
-Atualizacao com descoberta automatica do diretorio:
-
-```bash
-bash scripts/update-gestor.sh
-```
-
-Observacao: se `composer.lock` nao existir, o script aplica fallback para `composer update --no-dev`.
-
-## Hardening de producao
-
-- Rotas tecnicas sensiveis usam middleware `technical.guard` em producao
-- Em producao, o acesso exige usuario admin autenticado ou token tecnico
-- Configure `TECHNICAL_ROUTES_TOKEN` no `.env` para automacoes seguras
-- Envie o token em `X-Technical-Token` para chamadas tecnicas sem sessao web
-
-Exemplo:
-
-```bash
-curl -H "X-Technical-Token: SEU_TOKEN" "https://seu-dominio/check-update-status"
-```
-
-## Queue com Supervisor
-
-Arquivo de referencia: `deploy/supervisor/gestor-veet-worker.conf`
-
-Instalacao rapida na VM:
-
-```bash
-APP_DIR=/var/www/gestor-vet bash scripts/install-supervisor-queue.sh
-```
+Use `.env.example` como base minima de configuracao.
 
 ## CI
 
-O projeto possui pipeline em `.github/workflows/ci.yml` com:
+Pipeline em `.github/workflows/ci.yml`:
 
 - setup PHP 8.2
 - install composer
@@ -207,17 +171,10 @@ O projeto possui pipeline em `.github/workflows/ci.yml` com:
 
 ## Troubleshooting rapido
 
-- Erro `composer: command not found`: instale Composer
-- Erro `PHP atual: 8.1`: atualize para PHP 8.2
-- Pagina default do Apache: habilite o vhost `gestor-vet.conf` e desabilite `000-default`
+- `composer: command not found`: instale Composer
+- `PHP atual: 8.1`: atualize a VM para PHP 8.2
+- pagina default Apache: habilite `gestor-vet.conf` e desabilite `000-default`
 - SSL em IP: LetsEncrypt exige dominio valido
-
-## Melhorias recomendadas
-
-- Manter `composer.lock` e `package-lock.json` versionados para deploy previsivel
-- Restringir rotas tecnicas sensiveis em producao (update, exec/checks)
-- Configurar Supervisor para `queue:work` em ambiente com carga
-- Revisar periodicidade e observabilidade dos jobs de cobranca/campanha
 
 ## Licenca
 
