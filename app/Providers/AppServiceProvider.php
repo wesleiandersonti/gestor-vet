@@ -17,26 +17,25 @@ class AppServiceProvider extends ServiceProvider
     public function register()
     {
         try {
-            // Carregar e avaliar os arquivos de serviço criptografados
-            EncryptedFileLoader::load(app_path('Services/PluginService.php.pix'));
-            EncryptedFileLoader::load(app_path('Services/ModuleStatusService.php.pix'));
-            EncryptedFileLoader::load(app_path('Services/TrialService.php.pix'));
-            EncryptedFileLoader::load(app_path('Services/LicenseService.php.pix'));
+            $encryptedServices = [
+                \App\Services\PluginService::class => app_path('Services/PluginService.php.pix'),
+                \App\Services\ModuleStatusService::class => app_path('Services/ModuleStatusService.php.pix'),
+                \App\Services\TrialService::class => app_path('Services/TrialService.php.pix'),
+                \App\Services\LicenseService::class => app_path('Services/LicenseService.php.pix'),
+            ];
 
-            // Registrar os serviços como singletons
-            $this->app->singleton(\App\Services\PluginService::class, function ($app) {
-                return new \App\Services\PluginService();
-            });
+            foreach ($encryptedServices as $class => $file) {
+                if (!class_exists($class, false)) {
+                    EncryptedFileLoader::load($file);
+                }
 
-            $this->app->singleton(\App\Services\ModuleStatusService::class, function ($app) {
-                return new \App\Services\ModuleStatusService();
-            });
-
-            $this->app->singleton(\App\Services\TrialService::class, function ($app) {
-                return new \App\Services\TrialService();
-            });
-
-        } catch (\Exception $e) {
+                if (class_exists($class, false)) {
+                    $this->app->singleton($class, function () use ($class) {
+                        return new $class();
+                    });
+                }
+            }
+        } catch (\Throwable $e) {
             // Evita quebrar a aplicação caso haja algum problema ao carregar os .pix
             // Você pode logar o erro se preferir:
             // \Log::error('Erro no AppServiceProvider register(): ' . $e->getMessage());
