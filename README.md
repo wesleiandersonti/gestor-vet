@@ -178,6 +178,7 @@ Pipeline em `.github/workflows/ci.yml`:
 - `post-autoload-dump error 199`: instale/ative `php8.2-ioncube-loader` no CLI
 - sem pacote ionCube no apt: o instalador faz fallback automatico por download oficial
 - sem rota para `downloads.ioncube.com`: envie o tar.gz para a VM e use `IONCUBE_TARBALL=/caminho/ioncube.tar.gz`
+- `Table gestorvet.users doesn't exist` durante install: atualize para a ultima `main` e rode `php artisan migrate --force`
 - Node antigo (12/18): o instalador atualiza automaticamente para Node 20
 - pagina default Apache: habilite `gestor-vet.conf` e desabilite `000-default`
 - SSL em IP: LetsEncrypt exige dominio valido
