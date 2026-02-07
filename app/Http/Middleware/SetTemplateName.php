@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Models\CompanyDetail;
 use App\Models\User;
 use App\Models\Cliente;
@@ -13,6 +14,12 @@ class SetTemplateName
 {
     public function handle($request, Closure $next)
     {
+        if (!Schema::hasTable('users') || !Schema::hasTable('company_details')) {
+            config(['variables.templateName' => env('APP_NAME')]);
+            config(['variables.favicon' => 'assets/img/favicon/favicon.ico']);
+            return $next($request);
+        }
+
         // Verificar se o usuário está autenticado
         if (Auth::check()) {
             $user = Auth::user();
@@ -20,6 +27,12 @@ class SetTemplateName
 
             // Verificar se o usuário é um cliente
             if ($user->role_id == 3) { 
+                if (!Schema::hasTable('clientes')) {
+                    config(['variables.templateName' => env('APP_NAME')]);
+                    config(['variables.favicon' => 'assets/img/favicon/favicon.ico']);
+                    return $next($request);
+                }
+
                 $cliente = Cliente::where('id', $user->id)->first();
                 if ($cliente) {
                     // Log::info('Cliente encontrado:', ['cliente' => $cliente]);
