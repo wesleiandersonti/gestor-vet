@@ -34,6 +34,8 @@ install_ioncube_manual() {
   local php_ext_dir
   local loader_file="ioncube_loader_lin_8.2.so"
   local work_dir="/tmp/ioncube-install"
+  local ioncube_url="${IONCUBE_URL:-https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz}"
+  local ioncube_tarball="${IONCUBE_TARBALL:-$work_dir/ioncube.tar.gz}"
 
   php_ext_dir=$(php-config --extension-dir 2>/dev/null || php -i | awk -F'=> ' '/^extension_dir =>/ {print $2; exit}')
   if [ -z "$php_ext_dir" ]; then
@@ -42,8 +44,12 @@ install_ioncube_manual() {
 
   rm -rf "$work_dir"
   mkdir -p "$work_dir"
-  curl -fsSL "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz" -o "$work_dir/ioncube.tar.gz"
-  tar -xzf "$work_dir/ioncube.tar.gz" -C "$work_dir"
+
+  if [ ! -f "$ioncube_tarball" ]; then
+    curl -4fsSL "$ioncube_url" -o "$ioncube_tarball" || return 1
+  fi
+
+  tar -xzf "$ioncube_tarball" -C "$work_dir"
 
   if [ ! -f "$work_dir/ioncube/$loader_file" ]; then
     return 1
@@ -139,9 +145,9 @@ detect_local_ip() {
 
 detect_public_ip() {
   local result=""
-  result=$(curl -fsS https://api.ipify.org 2>/dev/null || true)
+  result=$(curl -4fsS https://api.ipify.org 2>/dev/null || true)
   if [ -z "$result" ]; then
-    result=$(curl -fsS https://ifconfig.me 2>/dev/null || true)
+    result=$(curl -4fsS https://ifconfig.me 2>/dev/null || true)
   fi
   printf '%s' "$result"
 }
@@ -193,7 +199,7 @@ ok "Dependencias instaladas"
 
 if ! php -m | grep -qi ioncube; then
   warn "Pacote ionCube nao encontrado no apt. Tentando instalacao manual..."
-  install_ioncube_manual || fatal "Falha ao instalar ionCube Loader manualmente."
+  install_ioncube_manual || fatal "Falha ao instalar ionCube Loader manualmente. Se o host bloquear downloads.ioncube.com, envie o tar.gz para a VM e rode com IONCUBE_TARBALL=/caminho/ioncube.tar.gz."
 fi
 
 if ! php -m | grep -qi ioncube; then
@@ -203,7 +209,7 @@ fi
 line
 info "Etapa 2/8: configurando Composer e Node.js"
 if ! command -v composer >/dev/null 2>&1; then
-  curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  curl -4sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 fi
 
 NEED_NODE_SETUP="false"
@@ -218,7 +224,7 @@ else
 fi
 
 if [ "$NEED_NODE_SETUP" = "true" ]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  curl -4fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
   apt_install nodejs
 fi
 
